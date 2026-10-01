@@ -1216,20 +1216,22 @@ new NodePreviewController(Cube, {
 		mesh.geometry.computeBoundingSphere()
 
 		// Update outline
-		var vs = [0,1,2,3,4,5,6,7].map(i => {
-			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-		});
-		let points = [
-			vs[2], vs[3],
-			vs[6], vs[7],
-			vs[2], vs[0],
-			vs[1], vs[4],
-			vs[5], vs[0],
-			vs[5], vs[7],
-			vs[6], vs[4],
-			vs[1], vs[3]
-		].map(a => new THREE.Vector3().fromArray(a))
-		mesh.outline.geometry.setFromPoints(points);
+		const outline_order = [2, 3, 6, 7, 2, 0, 1, 4, 5, 0, 5, 7, 6, 4, 1, 3];
+		const positions = mesh.geometry.attributes.position.array;
+		let outline_position = mesh.outline.geometry.getAttribute('position');
+		if (!outline_position || outline_position.isInterleavedBufferAttribute || outline_position.count !== 16 || outline_position.itemSize !== 3 ||
+			!(outline_position.array instanceof Float32Array) || outline_position.normalized) {
+			outline_position = new THREE.Float32BufferAttribute(new Float32Array(48), 3);
+			mesh.outline.geometry.setAttribute('position', outline_position);
+		}
+		// Keep the line's point order while reusing its CPU and GPU position buffers.
+		for (let i = 0; i < outline_order.length; i++) {
+			const source = outline_order[i] * 3;
+			outline_position.array[i * 3] = positions[source];
+			outline_position.array[i * 3 + 1] = positions[source + 1];
+			outline_position.array[i * 3 + 2] = positions[source + 2] || 0;
+		}
+		outline_position.needsUpdate = true;
 
 		this.updatePixelGrid(element);
 
