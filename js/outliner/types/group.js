@@ -116,8 +116,9 @@ export class Group extends OutlinerNode {
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
 				Outliner.selected.safePush(previous_first_selected);
 			}
+			let selected_elements = new Set(Project.selected_elements);
 			this.children.forEach(function(s) {
-				s.markAsSelected(true)
+				s.markAsSelected(true, selected_elements)
 			})
 		}
 		if (Animator.open && Animation.selected) {
@@ -137,12 +138,12 @@ export class Group extends OutlinerNode {
 		this.select(event, is_outliner_click);
 		Undo.finishSelection('Select group');
 	}
-	multiSelect() {
+	multiSelect(selected_elements) {
 		if (this.locked) return this;
 		this.selected = true;
 		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
-			s.markAsSelected()
+			s.markAsSelected(undefined, selected_elements)
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -150,10 +151,10 @@ export class Group extends OutlinerNode {
 	selectChildren(event) {
 		console.warn('Group#selectChildren is deprecated');
 	}
-	markAsSelected(descendants) {
+	markAsSelected(descendants, selected_elements) {
 		this.selected = true
 		this.children.forEach(function(s) {
-			s.markAsSelected(descendants)
+			s.markAsSelected(descendants, selected_elements)
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -313,7 +314,7 @@ export class Group extends OutlinerNode {
 	getWorldCenter() {
 		return THREE.fastWorldPosition(this.mesh, new THREE.Vector3());
 	}
-	transferOrigin(origin) {
+	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
 		var shift = new THREE.Vector3(
@@ -344,7 +345,7 @@ export class Group extends OutlinerNode {
 		}
 		this.children.forEach(child => iterateChild(child));
 
-		Canvas.updatePositions()
+		if (update) Canvas.updatePositions()
 		return this;
 	}
 	setColor(index) {

@@ -880,13 +880,16 @@ SharedActions.add('select_all', {
 		Undo.initSelection();
 		let selectable_elements = Outliner.elements.filter(element => !element.locked);
 		if (Outliner.selected.length < selectable_elements.length) {
+			let selected_elements = new Set(Project.selected_elements);
 			for (let node of Outliner.root) {
 				if (node instanceof Group) {
-					node.multiSelect();
+					node.multiSelect(selected_elements);
 				}
 			}
+			// Include selections made by node overrides that do not share the traversal set.
+			selected_elements = new Set(Project.selected_elements);
 			selectable_elements.forEach(obj => {
-				obj.markAsSelected()
+				obj.markAsSelected(undefined, selected_elements)
 			})
 			TickUpdates.selection = true;
 			Undo.finishSelection('Select all elements');

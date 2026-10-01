@@ -211,8 +211,15 @@ export abstract class OutlinerElement extends OutlinerNode {
 		}
 		Undo.finishSelection('Select element');
 	}
-	markAsSelected(select_children?: boolean) {
-		Project.selected_elements.safePush(this);
+	markAsSelected(select_children?: boolean, selected_elements?: Set<OutlinerElement>) {
+		if (selected_elements) {
+			if (!selected_elements.has(this)) {
+				Project.selected_elements.push(this);
+				selected_elements.add(this);
+			}
+		} else {
+			Project.selected_elements.safePush(this);
+		}
 		this.selected = true;
 		TickUpdates.selection = true;
 		return this;

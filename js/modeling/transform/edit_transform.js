@@ -390,14 +390,16 @@ new TransformerModule('edit', {
 			
 			let elements_to_update = Outliner.selected.slice();
 			if (Format.bone_rig && Group.first_selected) {
+				const defer_update = Modes.edit && Group.multi_selected.length > 1;
 				for (let group of Group.multi_selected) {
-					group.transferOrigin(origin);
+					group.transferOrigin(origin, !defer_update);
 					group.forEachChild(child => {
 						if (child instanceof OutlinerElement) {
 							elements_to_update.safePush(child);
 						}
 					})
 				}
+				if (defer_update) Canvas.updatePositions();
 			} else {
 				Outliner.selected.forEach(obj => {
 					if (obj.transferOrigin) {

@@ -260,7 +260,7 @@ export class Cube extends OutlinerElement {
 	markAsSelected(...args) {
 		let was_selected = this.selected;
 		super.markAsSelected(...args);
-		if (!was_selected && Cube.selected[0]) {
+		if (!was_selected) {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
 			if (other_selected_faces?.length && !own_selected_faces?.length) {
@@ -569,7 +569,7 @@ export class Cube extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
-	transferOrigin(origin, update = true) {
+	transferOrigin(origin, update = true, update_preview = true) {
 		if (!this.mesh) return;
 		var q = Reusable.quat1.copy(this.mesh.quaternion)
 		var shift = Reusable.vec1.set(
@@ -582,12 +582,14 @@ export class Cube extends OutlinerElement {
 		shift.sub(dq)
 		shift.applyQuaternion(q.invert())
 		
-		this.moveVector(shift, null, update)
+		this.moveVector(shift, null, update, update_preview)
 
 		this.origin.V3_set(origin);
 
-		this.preview_controller.updateTransform(this);
-		this.preview_controller.updateGeometry(this);
+		if (update_preview) {
+			this.preview_controller.updateTransform(this);
+			this.preview_controller.updateGeometry(this);
+		}
 		return this;
 	}
 	getWorldCenter() {
@@ -863,7 +865,7 @@ export class Cube extends OutlinerElement {
 			scope.preview_controller.updateUV(scope)
 		}
 	}
-	moveVector(arr, axis, update = true) {
+	moveVector(arr, axis, update = true, update_preview = true) {
 		if (typeof arr == 'number') {
 			var n = arr;
 			arr = [0, 0, 0];
@@ -890,8 +892,10 @@ export class Cube extends OutlinerElement {
 		}
 		if (update) {
 			this.mapAutoUV()
-			this.preview_controller.updateTransform(this);
-			this.preview_controller.updateGeometry(this);
+			if (update_preview) {
+				this.preview_controller.updateTransform(this);
+				this.preview_controller.updateGeometry(this);
+			}
 		}
 		TickUpdates.selection = true;
 		return in_box;

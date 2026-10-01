@@ -106,8 +106,9 @@ export function updateNslideValues() {
 //Selections
 export function updateSelection(options = {}) {
 	if (!Project) return;
+	const selected_elements = new Set(Project.selected_elements);
 	Project.elements.forEach(obj => {
-		let included = Project.selected_elements.includes(obj);
+		let included = selected_elements.has(obj);
 		if (included && !obj.selected && !obj.locked) {
 			obj.markAsSelected()
 		} else if ((!included || obj.locked) && obj.selected) {
@@ -162,8 +163,9 @@ export function updateSelection(options = {}) {
 			element.preview_controller.updateSelection(element);
 		}
 	})
+	const project_elements = new Set(Project.elements);
 	for (var i = Outliner.selected.length-1; i >= 0; i--) {
-		if (!Project.elements.includes(Outliner.selected[i])) {
+		if (!project_elements.has(Outliner.selected[i])) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
@@ -239,8 +241,12 @@ export function unselectAllElements(exceptions) {
 		PreviewModel.transform_model = null;
 		ToastNotification.notifications.preview_model_transform?.delete();
 	}
-	Project.selected_elements.slice().forEach(obj => {
-		if (exceptions instanceof Array && exceptions.includes(obj)) return;
+	const selected_elements = Project.selected_elements.slice();
+	const exception_set = new Set(exceptions instanceof Array ? exceptions : []);
+	// Keep the array shared with the UV editor; clear it once before object cleanup.
+	Project.selected_elements.replace(selected_elements.filter(obj => exception_set.has(obj)));
+	selected_elements.forEach(obj => {
+		if (exception_set.has(obj)) return;
 		obj.unselect()
 	})
 	for (let group of Group.multi_selected) {

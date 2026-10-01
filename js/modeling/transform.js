@@ -1428,18 +1428,21 @@ BARS.defineActions(function() {
 
 		console.log(rotation_objects)
 		if (rotation_objects && rotation_objects[0] instanceof Group) {
+			// Edit-mode pivot transfers leave bone rotations unchanged between groups.
+			const defer_update = Modes.edit && lock && rotation_objects.length > 1;
 			let elements_to_update = [];
 			for (let group of rotation_objects) {
 				let val = modifyInSpace(group.origin[axis], group);
 				if (lock) {
 					let origin_copy = group.origin.slice();
 					origin_copy[axis] = val;
-					group.transferOrigin(origin_copy);
+					group.transferOrigin(origin_copy, !defer_update);
 				} else {
 					group.origin[axis] = val;
 				}
 				group.forEachChild(element => elements_to_update.safePush(element), OutlinerElement);
 			}
+			if (defer_update) Canvas.updatePositions();
 			Canvas.updateView({
 				groups: rotation_objects,
 				group_aspects: {transform: true},
@@ -1451,12 +1454,16 @@ BARS.defineActions(function() {
 				Canvas.updateAllBones();
 			}
 		} else {
+			// Size limiters may read other cubes' world matrices between transfers.
+			const defer_cube_updates = Modes.edit && lock && rotation_objects.length > 1 &&
+				!Format.cube_size_limiter && rotation_objects.every(obj => obj instanceof Cube);
 			rotation_objects.forEach(function(obj, i) {
 				let val = modifyInSpace(obj.origin[axis], obj);
 				if (obj.transferOrigin && (!obj.getTypeBehavior('use_absolute_position') || lock)) {
 					let origin_copy = obj.origin.slice();
 					origin_copy[axis] = val;
-					obj.transferOrigin(origin_copy);
+					if (defer_cube_updates) obj.transferOrigin(origin_copy, true, false);
+					else obj.transferOrigin(origin_copy);
 				} else {
 					obj.origin[axis] = val;
 				}
