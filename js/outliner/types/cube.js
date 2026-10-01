@@ -1164,7 +1164,7 @@ new NodePreviewController(Cube, {
 		line.name = element.uuid+'_outline';
 		line.visible = element.selected;
 		line.renderOrder = 2;
-		line.frustumCulled = false;
+		line.frustumCulled = true;
 		mesh.outline = line;
 		mesh.add(line);
 
@@ -1230,6 +1230,10 @@ new NodePreviewController(Cube, {
 			vs[1], vs[3]
 		].map(a => new THREE.Vector3().fromArray(a))
 		mesh.outline.geometry.setFromPoints(points);
+		mesh.outline.geometry.boundingSphere ??= new THREE.Sphere();
+		mesh.outline.geometry.boundingSphere.copy(mesh.geometry.boundingSphere);
+		// Remain conservative under nested nonuniform scales and affine shear.
+		mesh.outline.geometry.boundingSphere.radius *= Math.sqrt(3);
 
 		this.updatePixelGrid(element);
 

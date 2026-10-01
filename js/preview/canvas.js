@@ -707,6 +707,7 @@ export const Canvas = {
 			if (!mesh || !mesh.geometry || !mesh.outline) return;
 
 			let copy = mesh.outline.clone();
+			copy.frustumCulled = false;
 			copy.geometry = mesh.outline.geometry.clone();
 			copy.geometry.applyMatrix4(mesh.matrixWorld);
 			copy.position.copy(Canvas.scene.position).multiplyScalar(-1);

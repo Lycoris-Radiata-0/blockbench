@@ -282,6 +282,7 @@ export const Animator = {
 				if (!mesh || !mesh.geometry || !mesh.outline) return;
 
 				let copy = mesh.outline.clone();
+				copy.frustumCulled = false;
 				copy.geometry = mesh.outline.geometry.clone();
 				copy.material = time < last_time ? Canvas.onionSkinEarlierMaterial : Canvas.onionSkinLaterMaterial;
 				copy.visible = true;

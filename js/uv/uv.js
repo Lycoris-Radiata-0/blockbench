@@ -5063,6 +5063,8 @@ Interface.definePanels(function() {
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true), '--inner-width': inner_width + 'px', '--inner-height': inner_height + 'px'}"
 						>
+							<!-- Read computed selection once; each read also traverses Vue dependencies. -->
+							<template v-for="mappable_elements_set in [display_uv === 'all_elements' ? new Set(mappable_elements) : null]">
 							<template v-for="element in getDisplayedUVElements()">
 
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
@@ -5070,7 +5072,7 @@ Interface.definePanels(function() {
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
 										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || mode == 'paint' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
 										:title="face_names[key]"
-										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
+										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements_set.has(element)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
 										@touchstart.prevent="dragFace(element, key, $event)"
 										@contextmenu="selectFace(element, key, $event, true, false)"
@@ -5081,7 +5083,7 @@ Interface.definePanels(function() {
 											'--height': toPixels(Math.abs(face.uv_size[1]), 2),
 										}"
 									>
-										<template v-if="isFaceSelected(element, key) && mode == 'uv' && !(display_uv === 'all_elements' && !mappable_elements.includes(element))">
+										<template v-if="isFaceSelected(element, key) && mode == 'uv' && !(display_uv === 'all_elements' && !mappable_elements_set.has(element))">
 											{{ face_names[key] || '' }}
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" @touchstart.prevent="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" @touchstart.prevent="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
@@ -5108,7 +5110,7 @@ Interface.definePanels(function() {
 									@mousedown.prevent="dragFace(element, null, $event)"
 									@touchstart.prevent="dragFace(element, null, $event)"
 									@click.prevent="selectCube(element, $event)"
-									:class="{unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
+									:class="{unselected: display_uv === 'all_elements' && !mappable_elements_set.has(element)}"
 									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
 								>
 									<div class="uv_fill" v-if="element.size(1, 'box_uv') > 0" :style="{left: '-1px', top: toPixels(element.size(2, 'box_uv'), -1), width: toPixels(element.size(2, 'box_uv')*2 + element.size(0, 'box_uv')*2, 2), height: toPixels(element.size(1, 'box_uv'), 2)}" />
@@ -5144,6 +5146,8 @@ Interface.definePanels(function() {
 										</template>
 									</div>
 								</template>
+
+							</template>
 
 							</template>
 
