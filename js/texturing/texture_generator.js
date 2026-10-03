@@ -1002,11 +1002,21 @@ export const TextureGenerator = {
 
 			// Check for double occupancy
 			if (options.double_use) {
+				let face_entry_lookup;
+				let removed_entries = new Set();
 				function findFaceListEntry(data, face_old_pos_id) {
 					let [element, face] = data;
-					return face_list.find(e => {
+					if (!face_entry_lookup) {
+						face_entry_lookup = new Map();
+						face_list.forEach(entry => {
+							let entry_face = entry.face || entry.faces[0];
+							if (!face_entry_lookup.has(entry_face)) face_entry_lookup.set(entry_face, []);
+							face_entry_lookup.get(entry_face).push(entry);
+						});
+					}
+					return face_entry_lookup.get(face)?.find(e => {
 						let element2 = (e.cube || e.mesh || e.element);
-						return e.face_old_pos_id == face_old_pos_id && element == element2 && face == (e.face || e.faces[0]);
+						return !removed_entries.has(e) && e.face_old_pos_id == face_old_pos_id && element == element2 && face == (e.face || e.faces[0]);
 					});
 				}
 				for (let face_old_pos_id in double_use_faces) {
@@ -1019,10 +1029,12 @@ export const TextureGenerator = {
 					for (let i = 1; i < faces.length; i++) {
 						let entry = findFaceListEntry(faces[i], face_old_pos_id);
 						if (!entry) continue;
-						face_list.remove(entry);
+						removed_entries.add(entry);
 						original_face_list_entry.copy_to.push(entry);
 					}
 				}
+				// Keep survivor and copy order unchanged; avoid shifting the list for each duplicate.
+				if (removed_entries.size) face_list = face_list.filter(entry => !removed_entries.has(entry));
 			}
 
 			face_list.forEach(face_group => {
@@ -1040,6 +1052,10 @@ export const TextureGenerator = {
 			})
 
 
+			let placement_start_lines = new Map();
+			function placementKey(tpl) {
+				return tpl.matrix ? null : `${tpl.width}_${tpl.height}_${!!options.padding}`;
+			}
 			function occupy(x, y) {
 				if (!fill_map[x]) fill_map[x] = {}
 				fill_map[x][y] = true
@@ -1087,6 +1103,10 @@ export const TextureGenerator = {
 					tpl.posy = y;
 					extend_x = Math.max(extend_x, x + tpl.width);
 					extend_y = Math.max(extend_y, y + tpl.height);
+					// Occupancy only grows: earlier failed lines stay blocked for this rectangle.
+					// Retest this line so empty footprints and the existing scan order are preserved.
+					let key = placementKey(tpl);
+					if (key !== null) placement_start_lines.set(key, Math.max(x, y));
 					return true;
 				}
 			}
@@ -1101,7 +1121,7 @@ export const TextureGenerator = {
 				if (cancelled) return;
 				handled += 6;
 				//Scan for empty spot
-				for (let line = 0; line < 2e3; line++) {
+				for (let line = placement_start_lines.get(placementKey(tpl)) || 0; line < 2e3; line++) {
 					for (let space = 0; space <= line; space++) {
 						if (place(tpl, space, line)) continue outer_loop;
 						if (space == line) continue;
@@ -1117,7 +1137,7 @@ export const TextureGenerator = {
 				if (cancelled) return;
 				handled += 1;
 				//Scan for empty spot
-				for (var line = 0; line < 2e3; line++) {
+				for (var line = placement_start_lines.get(placementKey(tpl)) || 0; line < 2e3; line++) {
 					for (var space = 0; space <= line; space++) {
 						if (place(tpl, space, line)) continue outer_loop2;
 						if (space == line) continue;
